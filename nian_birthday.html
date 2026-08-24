@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>برای Nian — یک مکث کوچک</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600&display=swap');
+  :root{--bg:#160d18;--pink:#f39ac8;--rose:#ffb7d9;--ink:#fff4fa;--muted:#dfb9cf}
+  *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden}
+  body{font-family:Vazirmatn,sans-serif;background:
+    radial-gradient(circle at 50% 35%,#51253f 0%,#281323 38%,#100a13 100%);
+    color:var(--ink)}
+  canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+  .glow{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(circle at 50% 45%,transparent 0,transparent 30%,rgba(10,4,12,.46) 100%)}
+  main{position:relative;z-index:2;width:min(720px,90vw);height:100vh;margin:auto;
+    display:flex;align-items:center;justify-content:center;text-align:center}
+  .card{width:100%;padding:38px 30px;opacity:0;transform:translateY(18px);
+    transition:opacity .8s ease,transform .8s ease}
+  .card.show{opacity:1;transform:none}
+  .tiny{font-size:.78rem;letter-spacing:.18em;color:#dba8c4;margin-bottom:18px}
+  h1{font-size:clamp(2rem,7vw,4.3rem);font-weight:500;margin:0 0 18px;
+    text-shadow:0 0 28px rgba(255,143,194,.35)}
+  p{font-size:clamp(1.02rem,2.5vw,1.3rem);line-height:2.25;color:var(--muted);margin:12px auto;max-width:620px}
+  .accent{color:#ffd0e5}
+  button{margin-top:28px;border:1px solid rgba(255,190,220,.3);background:rgba(255,160,204,.08);
+    color:#ffe7f2;border-radius:999px;padding:12px 25px;font-family:inherit;cursor:pointer;
+    backdrop-filter:blur(10px);transition:.3s}
+  button:hover{background:rgba(255,160,204,.16);transform:translateY(-2px)}
+  .signature{margin-top:30px;font-size:.85rem;color:#bd8fa9}
+  .progress{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:3;
+    display:flex;gap:7px}.dot{width:5px;height:5px;border-radius:50%;background:#8f617a;transition:.4s}
+  .dot.active{width:18px;border-radius:8px;background:#ffc2df}
+  .corner{position:fixed;z-index:2;opacity:.12;font-size:52px;pointer-events:none}
+  .c1{top:8%;left:7%}.c2{bottom:8%;right:7%}
+  @media(max-width:500px){.card{padding:28px 20px}p{line-height:2.05}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas><div class="glow"></div>
+<div class="corner c1">✦</div><div class="corner c2">♡</div>
+<main><section id="card" class="card"></section></main>
+<div id="progress" class="progress"></div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,DPR,particles=[],mouse={x:-9999,y:-9999},mode=0;
+
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2); W=innerWidth;H=innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  particles=[];
+  for(let i=0;i<Math.min(170,Math.floor(W*H/6500));i++) particles.push(makeP());
+}
+function makeP(){
+  return {x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.22,
+    vy:(Math.random()-.5)*.22,r:Math.random()*2.2+.5,a:Math.random()*.55+.15,
+    hue:Math.random()*35+325,phase:Math.random()*Math.PI*2};
+}
+function strawberry(x,y,s,fill=false,alpha=.16){
+  ctx.save();ctx.translate(x,y);ctx.rotate(-.15);ctx.globalAlpha=alpha;
+  ctx.strokeStyle='#ff9cc7';ctx.lineWidth=Math.max(1,s*.025);
+  ctx.beginPath();ctx.moveTo(0,-s*.42);ctx.bezierCurveTo(-s*.62,-s*.25,-s*.58,s*.48,0,s*.65);
+  ctx.bezierCurveTo(s*.58,s*.48,s*.62,-s*.25,0,-s*.42);ctx.stroke();
+  if(fill){ctx.globalAlpha=alpha*.45;ctx.fillStyle='#ff86ba';ctx.fill()}
+  ctx.fillStyle='#ffd0e5';
+  [[-.18,-.23],[.18,-.23],[-.3,.08],[0,.15],[.3,.08],[0,.43]].forEach(([a,b])=>{
+    ctx.beginPath();ctx.arc(a*s,b*s,s*.025,0,Math.PI*2);ctx.fill()
+  });
+  ctx.restore();
+}
+function kitty(x,y,s,alpha=.12){
+  ctx.save();ctx.translate(x,y);ctx.globalAlpha=alpha;ctx.strokeStyle='#ffd0e5';
+  ctx.lineWidth=Math.max(1,s*.025);ctx.lineJoin='round';ctx.beginPath();
+  ctx.moveTo(-.42*s,.48*s);ctx.lineTo(-.46*s,-.3*s);ctx.lineTo(-.27*s,-.5*s);
+  ctx.lineTo(-.08*s,-.35*s);ctx.lineTo(.08*s,-.35*s);ctx.lineTo(.27*s,-.5*s);
+  ctx.lineTo(.46*s,-.3*s);ctx.lineTo(.42*s,.48*s);
+  ctx.quadraticCurveTo(0,.65*s,-.42*s,.48*s);ctx.stroke();
+  ctx.fillStyle='#ffd0e5';ctx.beginPath();ctx.arc(-.16*s,-.05*s,.035*s,0,7);ctx.arc(.16*s,-.05*s,.035*s,0,7);ctx.fill();
+  ctx.restore();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const t=Date.now()/1000;
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    let d=Math.hypot(p.x-mouse.x,p.y-mouse.y);
+    if(d<130){p.x+=(p.x-mouse.x)/d*0.45;p.y+=(p.y-mouse.y)/d*0.45}
+    ctx.beginPath();ctx.fillStyle=`hsla(${p.hue},70%,82%,${p.a*(.75+.25*Math.sin(t+p.phase))})`;
+    ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();
+  });
+  const n=9;
+  for(let i=0;i<n;i++){
+    const x=W*(i+1)/(n+1)+Math.sin(t*.35+i)*55;
+    const y=H*(.16+(i%5)*.17)+Math.cos(t*.27+i)*40;
+    if(i%2) strawberry(x,y,18+((i*7)%14),false,.12+mode*.025);
+    else kitty(x,y,26+((i*5)%16),.09+mode*.02);
+  }
+  requestAnimationFrame(draw);
+}
+addEventListener('resize',resize);
+addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+resize();draw();
+
+const pages=[
+  {tiny:'برای n i a n',title:'تولدت مبارک، نیان.',text:'امروز قرار نیست چیزی را حل کنیم.<br>نه درس، نه خستگی، نه فکرهای زیادی که گاهی بی‌صدا روی شانه‌هات می‌نشینن.<br><span class="accent">فقط برای چند دقیقه، بذار دنیا ازت چیزی نخواد.</span>'},
+  {tiny:'یک چیز که شاید کمتر شنیده باشی',title:'لازم نیست همیشه «خوب» باشی.',text:'می‌دونم خیلی وقت‌ها طوری رفتار می‌کنی که انگار از پس همه‌چیز برمیای.<br>شاید هم واقعاً برمیای.<br>ولی قوی بودن، یعنی گاهی خسته بشی، مکث کنی، و بذاری یکی فقط بگه:<br><span class="accent">«می‌فهممت. لازم نیست توضیح بدی.»</span>'},
+  {tiny:'و درباره‌ی خودت',title:'تو چیزی نیستی که آدم‌های رفتنی تعریفش کنن.',text:'آدم‌هایی بودن که موندنشون رو بلد نبودن.<br>آدم‌هایی که باعث شدن شاید یه گوشه از ذهنت فکر کنی دوست‌داشتنی بودنت باید ثابت بشه.<br>ولی نیان…<br><span class="accent">ارزش تو با رفتن هیچ‌کس کم نمی‌شه.</span><br>و اون چیزی که از خودت می‌بینی، همیشه تمام حقیقت نیست.'},
+  {tiny:'برای روزهایی که خسته‌ای',title:'به خودت حق بده.',text:'این همه درس خوندن، فکر کردن، گوش دادن به بقیه و تلاش برای اینکه همه‌چیز درست باشه… کم نیست.<br>اگه امروز فقط می‌خوای نفس بکشی و یه آهنگ بذاری و به سقف نگاه کنی،<br><span class="accent">همون هم کافیه.</span><br>تو ماشین نیستی که همیشه باید کار کنی.'},
+  {tiny:'چیزی که از این هشت ماه فهمیدم',title:'من تو رو می‌بینم.',text:'نه فقط وقتی حرف می‌زنی؛ حتی وقتی ساکتی.<br>نه فقط وقتی می‌خندی؛ حتی وقتی می‌گی «چیزی نیست».<br>و شاید نتونم فاصله رو کوتاه کنم یا همه‌چیز رو درست کنم،<br>اما می‌تونم یادم بمونه که پشت اون «خوبم» یک آدم واقعی هست؛<br><span class="accent">آدمی که حق داره شنیده بشه، فهمیده بشه و بی‌دلیل خوشحال باشه.</span>'},
+  {tiny:'یک آرزوی خیلی ساده',title:'یه روز، یه خونه‌ی آروم.',text:'یه خونه که توش کسی مجبور نباشه خودش رو ثابت کنه.<br>چند تا گلدون، صدای بارون، دو تا سگ که کل خونه رو به هم می‌ریزن، دو تا گربه که فکر می‌کنن صاحب‌خونه‌ان…<br>و آدم‌هایی که به جای حرف‌های بزرگ، <span class="accent">با موندن و ساختن</span> به هم امنیت می‌دن.<br>شاید ساده باشه، ولی من فکر می‌کنم چیزهای قشنگ معمولاً همین‌قدر ساده‌ان.'},
+  {tiny:'حالا برای چند ثانیه',title:'هیچ کاری نکن.',text:'گوشی رو یه لحظه پایین بذار.<br>یه نفس عمیق بکش.<br>به خودت نگاه کن و یادت بیاد که با وجود تمام چیزهایی که خسته‌ات کردن،<br><span class="accent">هنوز اینجایی.</span><br>و من واقعاً امیدوارم امسال، بیشتر از قبل، خودت رو با همون مهربونی‌ای ببینی که برای بقیه داری.'},
+  {tiny:'آخرش فقط این',title:'تولدت مبارک، نیان. ♡',text:'امیدوارم امسال چیزهایی وارد زندگیت بشن که لازم نباشه برای موندنشون بجنگی.<br>آدم‌هایی که حضورت براشون کافی باشه.<br>روزهایی که سبک‌تر باشن.<br>و لحظه‌هایی که یادت بندازن زندگی فقط درس و فشار و دوام آوردن نیست.<br><br><span class="accent">امروز مال توئه. یکم استراحت کن، خانوم جدی.</span>',sign:'— از طرف کسی که خوشحاله تو رو شناخته'}
+];
+
+let page=0;const card=document.getElementById('card'),prog=document.getElementById('progress');
+pages.forEach((_,i)=>{let d=document.createElement('i');d.className='dot';prog.appendChild(d)});
+function render(){
+  card.classList.remove('show');mode=page;
+  setTimeout(()=>{
+    const p=pages[page];
+    card.innerHTML=`<div class="tiny">${p.tiny}</div><h1>${p.title}</h1><p>${p.text}</p>
+      ${p.sign?`<div class="signature">${p.sign}</div>`:''}
+      ${page<pages.length-1?'<button id="next">آروم ادامه بده ↓</button>':'<button id="restart">از اول، اگه دلت خواست ♡</button>'}`;
+    card.classList.add('show');
+    [...prog.children].forEach((d,i)=>d.classList.toggle('active',i===page));
+    document.getElementById(page<pages.length-1?'next':'restart').onclick=()=>{
+      if(page<pages.length-1){page++;render()}else{page=0;render()}
+    };
+  },300);
+}
+render();
+addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown'){if(page<pages.length-1){page++;render()}}});
+</script>
+</body></html>
